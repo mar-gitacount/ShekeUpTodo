@@ -26,6 +26,9 @@ final class AuthManager{
         
     }
 }
+
+
+
 class GetData: ObservableObject {
     var popupdatas = [popupdataType]()
         init(){
@@ -262,6 +265,32 @@ final class TodoUserModel: ObservableObject {
 //        return result
 //    }
 }
+//常に管理対象とする。何かするたび呼び出せばいい?
+class AuthControlManager: ObservableObject {
+    @Published var isLoggedIn = false
+    @Published var username:String?
+    //Firebase AuthenticationのAuthオブジェクトに対して、認証状態の変更を監視するためのハンドル。
+    private var handle: AuthStateDidChangeListenerHandle?
+    init(){
+        //初期化時点で認証状態を監視し、その値を代入する。
+        handle = Auth.auth().addStateDidChangeListener{ (auth,user) in
+            self.isLoggedIn = user != nil
+            self.username = user?.email
+        }
+    }
+    //メモリ上のインスタンスを解放する。
+    deinit {
+        if let handle = handle{
+            //監視状態を解除する。
+            Auth.auth().removeStateDidChangeListener(handle)
+        }
+    }
+    //呼び出されるたびにログインステータスを変更する。
+    func loggeintoggle(){
+        isLoggedIn.toggle()
+    }
+    
+}
 
 class ShakeTimesViewModel: ObservableObject {
     @Published var userdata = Userdatastock().userdata
@@ -270,6 +299,7 @@ class ShakeTimesViewModel: ObservableObject {
     @Published var userstatus = false
    // var firebasemodel = FirebasetododatagetModel()
 
+    //値が変更される度に以下のブロックが実行され、代入される。
     /**ユーザーデータid*/
     @Published var userid:String {
         didSet{

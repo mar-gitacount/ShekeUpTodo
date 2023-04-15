@@ -18,6 +18,29 @@ import FirebaseMessaging
 import CoreData
 import EventKit
 
+//メイン画面
+struct MainView: View{
+    @EnvironmentObject var authcontrolmanager:AuthControlManager
+    var body: some View{
+        Button(action: {
+            authcontrolmanager.isLoggedIn
+        }) {
+            Text("ログアウト")
+        }
+        //trueならfirebase接続する。
+        if authcontrolmanager.isLoggedIn{
+            
+        }
+    }
+}
+//ログイン制御画面
+struct LoginView: View{
+    @EnvironmentObject var authcontrolmanager:AuthControlManager
+    var body: some View{
+        Text("ログインビュー")
+    }
+}
+
 struct TestView: View {
     var body: some View{
         Text("呼ばれてるよ")
@@ -32,7 +55,7 @@ struct LogoutView :View{
 struct Userdatainfo :View {
     @EnvironmentObject var shakeTimes: ShakeTimesViewModel
     @ObservedObject var firebasemodel = FirebasetododatagetModel()
-
+    @ObservedObject var authControlManager = AuthControlManager()
     @Environment(\.presentationMode) var presentationMode
     //var shakeTimes = ShakeTimesViewModel()
     var body: some View{
@@ -53,6 +76,7 @@ struct Userdatainfo :View {
             VStack{
                 Button(action:{
                     //Appstorageを空にする処理を自動的に実装する。
+                    
                     firebasemodel.alldelete()
                     Auth.auth().currentUser?.delete{error in
                         if error == nil {
@@ -67,7 +91,13 @@ struct Userdatainfo :View {
                     }
                 },label:{Text("ユーザー削除する")})
                 Button(action:{
+                    do {
+                        try Auth.auth().signOut()
+                    } catch let sugnOutError as NSError {
+                        print("エラー")
+                    }
                     print(shakeTimes.userdataEmail)
+                    authControlManager.isLoggedIn = false
                     presentationMode.wrappedValue.dismiss()
                     shakeTimes.userid = ""
                     shakeTimes.userdataEmail = ""
@@ -133,7 +163,6 @@ struct UserSignUpandSignin: View {
                         //モデルで値が返ってきた時、trueならストレージに入れてfalseならまた分岐分岐先でtrueなら、データを作ってstorage
                         self.userdata = self.email
                         self.password = self.password
-                        print("ボタン押下！！")
                         print(self.userdata)
                     }
                 },label: {Text("ログイン")}).alert(isPresented:$alertflg){
@@ -163,6 +192,9 @@ struct UserSignUpandSignin: View {
 //    }
 //}
 
+
+
+
 func existenceuser_backStirng()->String{
     @EnvironmentObject var shakeTimes: ShakeTimesViewModel
 //    @State var userdata = Userdatastock().userdata
@@ -185,23 +217,24 @@ func existenceuser_backStirng()->String{
 }
 struct PasswordForgetView: View{
     @State var editemail = ""
-    
 //    self.userdataalertmessage = "登録があります。この情報でログインしますか?"
 //    self.userdataalertflg = true
     var body: some View{
         TextField("メールアドレスを入力してください",text:$editemail).autocapitalization(.none).textFieldStyle(RoundedBorderTextFieldStyle()).padding()
-        
-        
         Button(action:{
             Auth.auth().sendPasswordReset(withEmail: editemail) { error in }
         },label: {Text("メールを送る")})
     }
 }
 
+//
 struct ShakeTimesListView: View{
     //@ObservedObject var userdatainfo:Userdatainfo
     @EnvironmentObject var shakeTimes: ShakeTimesViewModel
     @EnvironmentObject var todousermodel:TodoUserModel
+    //ログイン制御する
+    //@EnvironmentObject var authcontrolmanager:AuthControlManager
+    @ObservedObject var authControlManager = AuthControlManager()
     //@EnvironmentObject var userc = shakeTimes.firabaseuserdatacheck
     //@State var test = shakeTimes.usertestdata
     @State private var selection = 0
@@ -237,6 +270,7 @@ struct ShakeTimesListView: View{
 //    array.append($userdata)
    @ObservedObject var userstatus = UserLoginStatus.shared
    //@State private var userflg = true
+    
     private func signIn(){
         if let _ =  Auth.auth().currentUser {
             print("true!!")
@@ -250,11 +284,13 @@ struct ShakeTimesListView: View{
             NavigationLink("ユーザー画面",destination:Userdatainfo())
             Button(action: {
                 print("Hello")
+                firebasemodel.popupdatas.removeAll()
             }, label: {
                 Text("ユーザー")
             })
             Button(action: {
                 print("Hello")
+                firebasemodel.popupdatas = [popupdataType]()
                 firebasemodel.deleteData()
             }, label: {
                 Text("全削除")
@@ -274,7 +310,16 @@ struct ShakeTimesListView: View{
         })
     }
     var body: some View {
-       /**自動ログインをクロージャで実行する。 */
+        if authControlManager.isLoggedIn{
+           // MainView()
+            Text("メイン画面")
+            Text(authControlManager.username!)
+        }
+        else {
+            //LoginView()
+            Text("ログアウト画面")
+        }
+        
         let usercheckcl = {
             Auth.auth().signIn(withEmail:shakeTimes.userdataEmail,password: shakeTimes.userdataPassword){
                 (resurt,error)in
@@ -305,6 +350,7 @@ struct ShakeTimesListView: View{
 //        }
         if(shakeTimes.firabaseuserdatacheck){}
         //print(shakeTimes.userdata)
+        
         if(shakeTimes.userdataEmail == ""){
             NavigationStack {
                 //                Form{
@@ -579,13 +625,14 @@ struct ShakeTimesListView: View{
 //                                Text(firebasemodel.fetchData())
 //                            }
 
-                            List{
-                                ForEach(firebasemodel.popupdatas) { data in
-                                    Text(data.taskTitle ?? "なし")
-                                }
-                            }.onAppear{
-                                firebasemodel.fetchData()
-                            }
+//                            List{
+//                                EmptyView()
+//                                ForEach(firebasemodel.popupdatas) { data in
+//                                    Text(data.taskTitle ?? "なし")
+//                                }
+//                            }.onAppear{
+//                                firebasemodel.fetchData()
+//                            }
 //                            List(firebasemodel.popupdatas){ data in
 //                                Text(data.taskTitle ?? "なし")
 //                            }.onAppear{
@@ -977,7 +1024,9 @@ struct InputView:View {
 
 struct ShakeTimesListView_Previews: PreviewProvider {
     static var previews: some View {
+        let authcontrolManager = AuthControlManager()
         ShakeTimesListView()
+            .environmentObject(authcontrolManager)
             .environmentObject(ShakeTimesViewModel())
           //  .environmentObject(Userdatainfo())
 
