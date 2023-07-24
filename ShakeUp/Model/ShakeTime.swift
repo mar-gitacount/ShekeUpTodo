@@ -228,4 +228,6 @@ struct popupdataType : Identifiable {
     var startTime: String
     var endTime: String
     var taskTitle: String
+    var taskBody: String
 }
+
