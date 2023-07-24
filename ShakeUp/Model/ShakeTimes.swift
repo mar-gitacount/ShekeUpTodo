@@ -51,6 +51,7 @@ class GetData: ObservableObject {
     
                             let category = document.document.get("taskCategory") as! String
                             let tasktitle = document.document.get("tasktitle") as! String
+                            let taskBody = document.document.get("taskBody") as! String
                             let startTimestamp = document.document.get("startTime") as! Timestamp
                             let endTimestamp = document.document.get("endTime") as! Timestamp
                             let id = document.document.get("id") as! String
@@ -66,7 +67,8 @@ class GetData: ObservableObject {
                             print(startTimestamp)
                             print("-----------------------------------")
                             DispatchQueue.main.async {
-                                self.popupdatas.append(popupdataType(id:id, taskCategory: category, startTime:startTime, endTime: endTime, taskTitle:tasktitle))
+                                self.popupdatas.append(popupdataType(id:id, taskCategory: category, startTime:startTime, endTime: endTime, taskTitle:tasktitle,taskBody:taskBody))
+                                
                             }
                         }
                     //testresult.append(document.data())
@@ -77,6 +79,8 @@ class GetData: ObservableObject {
 class FirebasetododatagetModel: ObservableObject {
     @Published var datas = [dateType]()
     @Published var popupdatas = [popupdataType]()
+    @Published var loddingflg = true
+    @Published var serchvalue = ""
 
 //    
 //    init(){
@@ -153,54 +157,209 @@ class FirebasetododatagetModel: ObservableObject {
     func Datas(taskcategory:String,quantity:Int){
         
     }
+    //データ検索しても、popupdatasに入稿する。
+    //データの取得パターン
+    //検索からの取得
+    //カテゴリからの取得
+    //すべての取得
     //データを取得する。
-    func fetchData()->[popupdataType]{
+    func fetchData(datasnumbers:Int = 10,serachvalue:String = "",categoryvalue:String = "")->[popupdataType]{
        // var datas = [FirebaseTodolist]()
-        var popupdatas = [popupdataType]()
-        var shaketimesviewmodel = ShakeTimesViewModel().userid
+        let popupdatas = [popupdataType]()
+        let shaketimesviewmodel = ShakeTimesViewModel().userid
+        let shaketimesviewmodelemail = ShakeTimesViewModel().userdataEmail
+        let currentuser = Auth.auth().currentUser
+        // 検索する文字列（例えば、serachvalue = "た" など）
+
+        // ひらがな・カタカナを検索する場合は、全角英数字を追加して範囲を指定します（"あ"から"ん"まで）
+        let endChar = serachvalue < "あ" || serachvalue >= "ん" ? "ｚ" : "z"
+
+        self.loddingflg = true
+        guard let uid = currentuser?.uid else {return popupdatas}
+//        if shaketimesviewmodelemail.isEmpty {
+//            print("から判定")
+//            return popupdatas
+//        }
+        //配列を一度空にする
+        self.popupdatas.removeAll()
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy'年'M'月'd'日('EEEEE') 'H'時'm'分's'秒'"
         dateFormatter.locale = Locale(identifier: "en_US_POSIX")
         dateFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
         //ここでfirebaseと通信する処理をしている。
         //とりあえずタイトルとidだけ持ってきて、クリックしたら、全データを持ってくる。
-        Firestore.firestore().collection("users").document(shaketimesviewmodel).collection("tasklist").order(by:"startTime" , descending: true).limit(to:10).addSnapshotListener{ (snaps, error) in
-            if let error = error{
-                fatalError("\(error)")
-                guard let snaps = snaps else {return}
-            }
-            for document in snaps!.documentChanges{
-                //var testdata = document.document.get("startTime") as! Timestamp
-                    if document.type == .added{
-                        let category = document.document.get("taskCategory") as! String
-                        let tasktitle = document.document.get("tasktitle") as! String
-                        let startTimestamp = document.document.get("startTime") as! Timestamp
-                        let endTimestamp = document.document.get("endTime") as! Timestamp
-                        let id = document.document.get("id") as! String
-                        let formatterDate = DateFormatter()
-                        formatterDate.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
-                        let startTime = formatterDate.string(from: startTimestamp.dateValue())
-                        let endTime = formatterDate.string(from: endTimestamp.dateValue())
-                        //let id = document.document.get("")
-                       // let str = dateFormatter.string(from:startTime.dateValue())
-                        print("-----------------------------------")
-                        print(category)
-                        print(id)
-                        print(startTimestamp)
-                        print("-----------------------------------")
-                        DispatchQueue.main.async {
-                            self.popupdatas.append(popupdataType(id: id, taskCategory: category, startTime: startTime, endTime: endTime, taskTitle: tasktitle))
+//            .limit(to:datasnumbers)
+        //検索文字がからでない場合、渡された文字列で検索してpopupdatasに入れ込む。
+        if !serachvalue.isEmpty{
+            //謎変数
+            var matchingDocuments = [QueryDocumentSnapshot]()
+            //タスクリストコレクションの取得。
+            let query = Firestore.firestore().collection("users").document(uid).collection("tasklist")
+            
+            
+            
+            // Firestoreからデータを取得
+            query.getDocuments { (snapshot, error) in
+                if let error = error {
+                    print("データ取得エラー: \(error)")
+                } else {
+                    var matchingDocuments = [QueryDocumentSnapshot]()
+
+                    // Firestoreから取得したデータをローカルに保持
+                    if let documents = snapshot?.documents {
+                        matchingDocuments = documents.filter { document in
+                            // 部分検索を行う（大文字小文字を無視する場合はcaseInsensitiveにする）
+                            if let tasktitle = document.data()["tasktitle"] as? String {
+                                return tasktitle.range(of: serachvalue, options: .caseInsensitive) != nil
+                            }
+                            return false
                         }
                     }
-                //testresult.append(document.data())
+                        
+                    // 部分検索の結果を処理してpopupdatasに入稿
+                    DispatchQueue.main.async {
+                        self.popupdatas.removeAll()
+                        for document in matchingDocuments{
+                            let documentID = document.documentID
+                            //ドキュメントidを取得したので、その中のデータを抽出する。
+                            print(document.get("tasktitle") as! String)
+                            print(documentID)
+                            print("データ一覧内")
+                            let category = document.get("taskCategory") as! String
+                            let tasktitle = document.get("tasktitle") as! String
+                            let taskBody = document.get("taskBody") as! String
+                            let startTimestamp = document.get("startTime") as! Timestamp
+                            let endTimestamp = document.get("endTime") as! Timestamp
+                            //let id = document.get("id") as! String
+                            let formatterDate = DateFormatter()
+                            formatterDate.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+                            let startTime = formatterDate.string(from: startTimestamp.dateValue())
+                            let endTime = formatterDate.string(from: endTimestamp.dateValue())
+           
+                            self.popupdatas.append(popupdataType(id: documentID, taskCategory: category, startTime: startTime, endTime: endTime, taskTitle: tasktitle,taskBody: taskBody))
+                            self.loddingflg = false
+                            //この処理が終わるまでローディングフラグをONにし、zstackでロード画面にする。ビュー側ではローディングフラグがonな限り、zstackを実行する。
+                        }
+                        
+                    }
+
+                }//error=else
             }
+            
+            
+            
+//            Firestore.firestore().collection("users").document(uid).collection("tasklist")
+//                .whereField("tasktitle",isGreaterThanOrEqualTo: serachvalue)
+//                .whereField("tasktitle",isLessThan: serachvalue + "z")
+//                .getDocuments{(snaps,error) in
+//                    if let error = error {
+//                        print("Error getting documents: \(error)")
+//                        return
+//                    }
+//                    guard let documents = snaps?.documents else{
+//                        print("検索０件")
+//                        return
+//                    }
+//                    print(documents)
+//
+//                    DispatchQueue.main.async {
+//                        self.popupdatas.removeAll()
+//                        for document in documents{
+//                            let documentID = document.documentID
+//                            //ドキュメントidを取得したので、その中のデータを抽出する。
+//                            print(document.get("tasktitle") as! String)
+//                            print(documentID)
+//                            print("データ一覧内")
+//                            let category = document.get("taskCategory") as! String
+//                            let tasktitle = document.get("tasktitle") as! String
+//                            let taskBody = document.get("taskBody") as! String
+//                            let startTimestamp = document.get("startTime") as! Timestamp
+//                            let endTimestamp = document.get("endTime") as! Timestamp
+//                            //let id = document.get("id") as! String
+//                            let formatterDate = DateFormatter()
+//                            formatterDate.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+//                            let startTime = formatterDate.string(from: startTimestamp.dateValue())
+//                            let endTime = formatterDate.string(from: endTimestamp.dateValue())
+//
+//                            self.popupdatas.append(popupdataType(id: documentID, taskCategory: category, startTime: startTime, endTime: endTime, taskTitle: tasktitle,taskBody: taskBody))
+//                            self.loddingflg = false
+//                            //この処理が終わるまでローディングフラグをONにし、zstackでロード画面にする。ビュー側ではローディングフラグがonな限り、zstackを実行する。
+//
+//                        }
+//
+//                    }
+//
+//                }// Firestore.firestore().collection("users").document(uid).collection("tasklist")
+            print("検索関数の終わり")
+            return popupdatas
+        }
+        
+        Firestore.firestore().collection("users").document(uid).collection("tasklist").order(by:"startTime" , descending: true).addSnapshotListener{ (snaps, error) in
+            if let error = error{
+                return
+                //fatalError("\(error)")
+                guard let snaps = snaps else {return}
+            }
+            guard let documents = snaps?.documents else {
+                return
+            }
+                DispatchQueue.main.async {
+                    self.popupdatas.removeAll()
+                    //            ここの繰り返し処理を非同期処理内に移動する。
+                                for document in documents{
+                                    let documentID = document.documentID
+                                    //ドキュメントidを取得したので、その中のデータを抽出する。
+                                    print(document.get("tasktitle") as! String)
+                                    print(documentID)
+                                    let category = document.get("taskCategory") as! String
+                                    let tasktitle = document.get("tasktitle") as! String
+                                    let taskBody = document.get("taskBody") as! String
+                                    let startTimestamp = document.get("startTime") as! Timestamp
+                                    let endTimestamp = document.get("endTime") as! Timestamp
+                                    //let id = document.get("id") as! String
+                                    let formatterDate = DateFormatter()
+                                    formatterDate.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+                                    let startTime = formatterDate.string(from: startTimestamp.dateValue())
+                                    let endTime = formatterDate.string(from: endTimestamp.dateValue())
+                   
+                    self.popupdatas.append(popupdataType(id: documentID, taskCategory: category, startTime: startTime, endTime: endTime, taskTitle: tasktitle,taskBody: taskBody))
+                    self.loddingflg = false
+                }//この処理が終わるまでローディングフラグをONにし、zstackでロード画面にする。ビュー側ではローディングフラグがonな限り、zstackを実行する。
+                
+            }
+//            for document in snaps!.documentChanges{
+//                //var testdata = document.document.get("startTime") as! Timestamp
+//                    if document.type == .added{
+//                        let category = document.document.get("taskCategory") as! String
+//                        let tasktitle = document.document.get("tasktitle") as! String
+//                        let startTimestamp = document.document.get("startTime") as! Timestamp
+//                        let endTimestamp = document.document.get("endTime") as! Timestamp
+//                        let id = document.document.get("id") as! String
+//                        let formatterDate = DateFormatter()
+//                        formatterDate.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZ"
+//                        let startTime = formatterDate.string(from: startTimestamp.dateValue())
+//                        let endTime = formatterDate.string(from: endTimestamp.dateValue())
+//                        //let id = document.document.get("")
+//                       // let str = dateFormatter.strinCzg(from:startTime.dateValue())
+//                        print("-----------------------------------")
+//                        print(category)
+//                        print(id)
+//                        print(startTimestamp)
+//                        print("-----------------------------------")
+//                        DispatchQueue.main.async {
+//                            self.popupdatas.append(popupdataType(id: id, taskCategory: category, startTime: startTime, endTime: endTime, taskTitle: tasktitle))
+//                        }
+//                    }
+//                //testresult.append(document.data())
+//            }
         }
         return popupdatas
     }
     //ユーザーごと削除された時に走る処理もじ通りすべて削除
     func alldelete(){
         var deletetaskdata = ShakeTimesViewModel().userid
-        Firestore.firestore().collection("users").document(deletetaskdata).delete(){ err in
+        guard let userid = Auth.auth().currentUser?.uid else {return}
+        Firestore.firestore().collection("users").document(userid).delete(){ err in
             if let err = err {
                 print("Error removing document: \(err)")
                 print("エラー入ってる")
@@ -209,13 +368,39 @@ class FirebasetododatagetModel: ObservableObject {
                 print("削除成功")
             }
         }
-        
     }
+    func popupdatasremove(){
+        self.popupdatas.removeAll()
+
+    }
+    func singledelete(data:String){
+        guard let userid = Auth.auth().currentUser?.uid else {
+            print("なし")
+            return
+        }
+        //以下のドキュメントの部分のidを取得し、削除する。
+        Firestore.firestore().collection("users").document(userid).collection("tasklist")
+            .document().delete(){ err in
+                if let err = err {
+                    print("デリートエラー")
+                }
+                else{
+                    print("消しました。関数")
+                }
+            }
+    }
+    
     func deleteData(){
-        var shaketimesviewmodel = ShakeTimesViewModel().userid
-        Firestore.firestore().collection("users").document(shaketimesviewmodel).collection("tasklist").getDocuments{(snaps ,error) in
+        _ = ShakeTimesViewModel().userid
+        
+        guard let userid = Auth.auth().currentUser?.uid else {return}
+        print("-----------------------------------")
+        print(userid)
+        print("-----------------------------------")
+
+        Firestore.firestore().collection("users").document(userid).collection("tasklist").getDocuments{(snaps ,error) in
             if let error = error{
-                print("error")
+                print("削除失敗")
             }
             else{
                 for document in snaps!.documents{
@@ -265,17 +450,17 @@ final class TodoUserModel: ObservableObject {
 //        return result
 //    }
 }
+
 //常に管理対象とする。何かするたび呼び出せばいい?
 class AuthControlManager: ObservableObject {
     @Published var isLoggedIn = false
-    @Published var username:String?
+    @Published var user:User?
     //Firebase AuthenticationのAuthオブジェクトに対して、認証状態の変更を監視するためのハンドル。
     private var handle: AuthStateDidChangeListenerHandle?
     init(){
         //初期化時点で認証状態を監視し、その値を代入する。
         handle = Auth.auth().addStateDidChangeListener{ (auth,user) in
             self.isLoggedIn = user != nil
-            self.username = user?.email
         }
     }
     //メモリ上のインスタンスを解放する。
@@ -285,12 +470,57 @@ class AuthControlManager: ObservableObject {
             Auth.auth().removeStateDidChangeListener(handle)
         }
     }
+    //ログイン関数
+    func signin(email:String,password:String){
+        Auth.auth().signIn(withEmail:email,password: password){result, error in
+            if let user = result?.user{
+                //ここがtrueになればビューが再描画される。
+                self.isLoggedIn = true
+                DispatchQueue.main.async {
+                    self.user = user
+                }
+            } else if let error = error{
+                print("エラー")
+            }
+        }
+    }
+    //サインアップ関数
+    func signup(email:String,password:String){
+        Auth.auth().createUser(withEmail:email, password: password){ authResult, error in
+            if let user = authResult?.user {
+                self.isLoggedIn = true
+                let request = user.createProfileChangeRequest()
+                let db = Firestore.firestore()
+                //メールエラーでない場合、登録メールを送る。
+                user.sendEmailVerification(completion:{error in
+                    if error == nil {
+                        print("登録完了")
+                    }
+                })
+                let values = ["name":user.uid,"email":email]
+                //データを登録する。
+                db.collection("users").document(user.uid).setData(values)
+            }
+        }
+    }
+    //ログアウト関数
+    func logout(){
+        do {
+            self.isLoggedIn = false
+            try Auth.auth().signOut()
+        } catch let error as NSError {
+            print("サインアウトできませんでした。")
+        }
+        
+    }
     //呼び出されるたびにログインステータスを変更する。
     func loggeintoggle(){
         isLoggedIn.toggle()
     }
     
 }
+
+
 
 class ShakeTimesViewModel: ObservableObject {
     @Published var userdata = Userdatastock().userdata

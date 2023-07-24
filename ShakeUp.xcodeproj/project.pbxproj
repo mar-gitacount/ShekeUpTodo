@@ -7,7 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		08C01CDD298BFC3300997CDF /* PopUpDialogView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08C01CDC298BFC3300997CDF /* PopUpDialogView.swift */; };
+		080014452A1CCC7E008B62E7 /*  SignInWithAppleButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 080014442A1CCC7E008B62E7 /*  SignInWithAppleButton.swift */; };
+		080014472A1CD37E008B62E7 /* SignInWithAppleObject..swift in Sources */ = {isa = PBXBuildFile; fileRef = 080014462A1CD37E008B62E7 /* SignInWithAppleObject..swift */; };
 		08C20FD62968821E00EE2AE4 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 08C20FD52968821E00EE2AE4 /* GoogleService-Info.plist */; };
 		08C20FD92968849D00EE2AE4 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = 08C20FD82968849D00EE2AE4 /* FirebaseAnalytics */; };
 		08C20FDB2968849D00EE2AE4 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = 08C20FDA2968849D00EE2AE4 /* FirebaseAnalyticsOnDeviceConversion */; };
@@ -72,8 +73,9 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		080014442A1CCC7E008B62E7 /*  SignInWithAppleButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = " SignInWithAppleButton.swift"; sourceTree = "<group>"; };
+		080014462A1CD37E008B62E7 /* SignInWithAppleObject..swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInWithAppleObject..swift; sourceTree = "<group>"; };
 		084D9BD429671503009EE728 /* ShakeUp.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ShakeUp.entitlements; sourceTree = "<group>"; };
-		08C01CDC298BFC3300997CDF /* PopUpDialogView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PopUpDialogView.swift; path = "../../Library/Developer/Xcode/DerivedData/ShakeUp-bfdjmkqckdqrdracnsavhwxcrqmn/SourcePackages/checkouts/promises/Promises.playground/PopUpDialogView.swift"; sourceTree = "<group>"; };
 		08C20FD52968821E00EE2AE4 /* GoogleService-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		7A3957A22398F9E9003040BA /* ShakeUp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ShakeUp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A3957A52398F9E9003040BA /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
@@ -154,7 +156,6 @@
 		7A3957992398F9E9003040BA = {
 			isa = PBXGroup;
 			children = (
-				08C01CDC298BFC3300997CDF /* PopUpDialogView.swift */,
 				7A3957A42398F9E9003040BA /* ShakeUp */,
 				7A3957BB2398F9ED003040BA /* ShakeUpTests */,
 				7A3957C62398F9ED003040BA /* ShakeUpUITests */,
@@ -223,6 +224,8 @@
 				7A3957D62398FB38003040BA /* Parts */,
 				7A3957A92398F9E9003040BA /* ShakeTimesListView.swift */,
 				7A3957E4239BCC87003040BA /* ShakeUpView.swift */,
+				080014462A1CD37E008B62E7 /* SignInWithAppleObject..swift */,
+				080014442A1CCC7E008B62E7 /*  SignInWithAppleButton.swift */,
 			);
 			path = SwiftUI;
 			sourceTree = "<group>";
@@ -432,8 +435,9 @@
 				7A3957E3239BC293003040BA /* LocalPushCenter.swift in Sources */,
 				7A3957A62398F9E9003040BA /* AppDelegate.swift in Sources */,
 				7A3957DE239906A5003040BA /* ShakeTime.swift in Sources */,
-				08C01CDD298BFC3300997CDF /* PopUpDialogView.swift in Sources */,
+				080014452A1CCC7E008B62E7 /*  SignInWithAppleButton.swift in Sources */,
 				7A3957E7239BD693003040BA /* ShakeViewModel.swift in Sources */,
+				080014472A1CD37E008B62E7 /* SignInWithAppleObject..swift in Sources */,
 				7A3957A82398F9E9003040BA /* SceneDelegate.swift in Sources */,
 				7A3957E123990CB4003040BA /* ShakeTimes.swift in Sources */,
 				7A3957AA2398F9E9003040BA /* ShakeTimesListView.swift in Sources */,
