@@ -41,13 +41,16 @@ struct MainView: View{
     @State private var showPopUpDialog = false
     //ビューを強制的に更新するリロードフラグ
     @State private var reloadFlg = false
+    
+    //検索文字
     @State var searchText = ""
+    
     //以下はビューを更新するためのコード
     @State private var viewuploadConrollflg = false
     @Binding var childviewchangeflg : Bool
     @State private var isLoading = false
     let loadingview = LoadView()
-    
+
     
     
     func hideKeyboard() {
@@ -67,6 +70,8 @@ struct MainView: View{
                         HStack {
                             Image(systemName: "magnifyingglass") //検索アイコン
                             TextField("タスクを検索 ...", text: $searchText)
+//                            Text(searchText)
+                            
 //                            firebasemodel.serchvalue = "t"
                         }.padding()
                             .background(Color(.systemGray6))//背景色
@@ -85,8 +90,15 @@ struct MainView: View{
                         }
                     }
                 }.sheet(isPresented:$showPopUpDialog,onDismiss: {
+                    //ここで検索方法を制御する。
+                    if !searchText.isEmpty {
+                        _ = firebasemodel.fetchData(serachvalue:searchText)
+                        print(searchText)
+                        print("onapper部分に入ってる。")
+                        return
+                    }
                     childviewchangeflg.toggle()
-                    firebasemodel.fetchData()
+                    _ = firebasemodel.fetchData()
                     firebasemodel.loddingflg = true
                     
                   //  isLoading = true
@@ -125,12 +137,7 @@ struct MainView: View{
                             ForEach(firebasemodel.popupdatas) { data in
                                 //  Text(data.taskTitle.isEmpty ? "なし":data.taskTitle)
                                 //スワイプしたら編集ボタンと削除ボタンを出現させる。
-                                //ここで
-                            
                                 Text(data.taskTitle).swipeActions(edge: .trailing) {
-                                    
-                                    
-                                    
                                     //削除ボタン
                                     Button {
                                         // 処理ここで指定したレコードを削除する。
@@ -165,6 +172,7 @@ struct MainView: View{
                                         viewModel.bodytext = data.taskBody
                                         viewModel.firevaseid = data.id
                                         viewModel.startTtime = StringChangeDate(string:data.startTime)
+                                        viewModel.endTime = StringChangeDate(string:data.endTime)
                                         viewModel.taskCategory = data.taskCategory
                                         showPopUpDialog = true
                                         
@@ -186,6 +194,8 @@ struct MainView: View{
                                     viewModel.bodytext = data.taskBody
                                     viewModel.firevaseid = data.id
                                     viewModel.startTtime = StringChangeDate(string:data.startTime)
+                                    viewModel.endTime = StringChangeDate(string:data.endTime)
+                                   
                                     viewModel.taskCategory = data.taskCategory
                                     showPopUpDialog = true
                                     childviewchangeflg.toggle()
@@ -227,10 +237,14 @@ struct MainView: View{
                         .onAppear{
                             //ここで検索方法を制御する
                             if !searchText.isEmpty {
-                                firebasemodel.fetchData(serachvalue:searchText)
+                                _ = firebasemodel.fetchData(serachvalue:searchText)
+                                print(searchText)
+                                print("onapper部分に入ってる。")
                                 return
                             }
-                            firebasemodel.fetchData()
+                            _ = firebasemodel.fetchData()
+                            print(searchText)
+                            print("onapper部分入ってない")
                             //3秒後にローディング画面を非表示にする。
                             // 3秒後にローディングを非表示にする
 //                                                    if firebasemodel.loddingflg{
@@ -245,12 +259,15 @@ struct MainView: View{
                         }
                         .onChange(of:searchText){ newValue in
                             if !newValue.isEmpty {
-                                firebasemodel.fetchData(serachvalue:searchText)
+                                firebasemodel.fetchData(serachvalue:newValue)
                                 print("検索文字入力されてる")
+                                print(searchText)
                             }
                             else{
                                 firebasemodel.fetchData()
+                                //ここでは検索→タスクタップ→検索結果文字以外の表示されているがここには入らない
                                 print("検索文字入力されていない")
+                                print(searchText)
                             }
                             
                         }
@@ -280,30 +297,30 @@ struct MainView: View{
         Menu(content: {
             NavigationLink("ユーザー画面",destination:Userdatainfo())
             
-            Button(action: {
-                print("Hello")
-                presentationMode.wrappedValue.dismiss()
-                firebasemodel.popupdatas.removeAll()
-            }, label: {
-                Text("ユーザー")
-            })
-            Button(action: {
-                print("Hello")
-                firebasemodel.popupdatas = [popupdataType]()
-                firebasemodel.deleteData()
-            }, label: {
-                Text("全削除")
-            })
-            Button(action: {
-                print("テスト")
-            }, label: {
-                Text("テスト")
-            })
-            Button(action: {
-                print("Hello")
-            }, label: {
-                Text("Hello4")
-            })
+//            Button(action: {
+//                print("Hello")
+//                presentationMode.wrappedValue.dismiss()
+//                firebasemodel.popupdatas.removeAll()
+//            }, label: {
+//                Text("ユーザー")
+//            })
+//            Button(action: {
+//                print("Hello")
+//                firebasemodel.popupdatas = [popupdataType]()
+//                firebasemodel.deleteData()
+//            }, label: {
+//                Text("全削除")
+//            })
+//            Button(action: {
+//                print("テスト")
+//            }, label: {
+//                Text("テスト")
+//            })
+//            Button(action: {
+//                print("Hello")
+//            }, label: {
+//                Text("Hello4")
+//            })
         }, label: {
             Image(systemName: "list.bullet")
         })
@@ -446,6 +463,8 @@ struct Userdatainfo :View {
     @EnvironmentObject var shakeTimes: ShakeTimesViewModel
     @ObservedObject var firebasemodel = FirebasetododatagetModel()
     @ObservedObject var authControlManager = AuthControlManager()
+    //ユーザーダイアログを表示する。
+    @State var userdeleddialog = false
     @Environment(\.presentationMode) var presentationMode
     //var shakeTimes = ShakeTimesViewModel()
     var body: some View{
@@ -469,22 +488,7 @@ struct Userdatainfo :View {
                     Text("ichikawa")
                     //ユーザーデータ一覧
                 }
-                Button(action:{
-                    //Appstorageを空にする処理を自動的に実装する。
-                    firebasemodel.alldelete()
-                    authControlManager.isLoggedIn = false
-                    Auth.auth().currentUser?.delete{error in
-                        if error == nil {
-                            presentationMode.wrappedValue.dismiss()
-                            shakeTimes.userid = ""
-                            shakeTimes.userdataEmail = ""
-                            shakeTimes.userdataPassword = ""
-                            shakeTimes.userstatus = false
-                        }else{
-                            print("エラー")
-                        }
-                    }
-                },label:{Text("ユーザー削除する")}).padding()
+
                 Button(action:{
                     do {
                         try Auth.auth().signOut()
@@ -498,7 +502,39 @@ struct Userdatainfo :View {
                     shakeTimes.userdataEmail = ""
                     shakeTimes.userdataPassword = ""
                     shakeTimes.userstatus = false
-                },label: {Text("画面遷移テスト")})
+                },label: {Text("ログアウト")})
+                
+                Button(action:{
+                    //Appstorageを空にする処理を自動的に実装する。
+                    userdeleddialog = true
+                    
+                },label:{Text("ユーザー削除する※注意※!!")}).padding()
+                    .alert(isPresented: $userdeleddialog) {
+                        Alert(
+                            title: Text("ユーザー削除の確認"),
+                            message: Text("本当にユーザーを削除しますか？この操作は取り消せません。"),
+                            primaryButton: .destructive(Text("削除"), action: {
+                                firebasemodel.alldelete()
+                                authControlManager.isLoggedIn = false
+                                
+                                Auth.auth().currentUser?.delete{error in
+                                    if error == nil {
+                                        presentationMode.wrappedValue.dismiss()
+                                        shakeTimes.userid = ""
+                                        shakeTimes.userdataEmail = ""
+                                        shakeTimes.userdataPassword = ""
+                                        shakeTimes.userstatus = false
+                                        
+                                    }else{
+                                        print("エラー")
+                                        
+                                    }
+                                    
+                                }
+                            }),
+                            secondaryButton: .cancel(Text("キャンセル"))
+                        )
+                    }
             }
         }
         //.navigationDestination(for:LogoutView.self)
@@ -1118,14 +1154,33 @@ func uuidreturn()->String{
 }
 
 func StringChangeDate(string:String)->Date{
+    let inputDateFormatter = ISO8601DateFormatter()
+    inputDateFormatter.formatOptions = [.withInternetDateTime]
+    inputDateFormatter.timeZone = TimeZone(secondsFromGMT: 0)
+    if let date = inputDateFormatter.date(from: string) {
+        let outputDateFormatter = DateFormatter()
+        outputDateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z"
+        let formattedDateStr = outputDateFormatter.date(from: string)
+        print(formattedDateStr)
+        return date
+        
+    } else {
+        print("Invalid date format")
+    }
     let dateFormatter = DateFormatter()
 //    dateFormatter.dateFormat = "yyyy'年'M'月'd'日('EEEEE') 'H'時'm'分's'秒'"
+    
     dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss Z" // 日付の形式に合わせてフォーマットを設定
     dateFormatter.locale = Locale(identifier: "en_US_POSIX")
     dateFormatter.timeZone = TimeZone(identifier: "Asia/Tokyo")
     let formattedDatestr = string.replacingOccurrences(of: "T", with: " ")
     let newDate = Date()
-    print(formattedDatestr)
+    
+    let testdata = dateFormatter.date(from:formattedDatestr)
+    print(string)
+    print(testdata)
+    print("---------------スタートタイム--------------------")
+
     if let date = dateFormatter.date(from:formattedDatestr){
         print("データ確認")
         print(date)
@@ -1265,24 +1320,52 @@ struct PopupView: View {
                     Text("タスクの詳細を記入する")
                         .font(Font.system(size: 18).bold())
                     HStack(alignment: .firstTextBaseline){
-                        TextEditor(text: $taskBody)
-                            .padding()
-                            .frame(height:200,alignment: .topLeading)
-                            .focused($focasisActive)
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()         // 右寄せにする
-                                    Button("閉じる") {
-                                        focasisActive = false  //  フォーカスを外す
-                                    }
-                                }
+                        ZStack(alignment: .bottomTrailing) {
+                            TextEditor(text: $taskBody)
+                                .padding()
+                                .frame(height: 200, alignment: .topLeading)
+                                .focused($focasisActive)
+                                .multilineTextAlignment(.leading)
+                                .background(Color(uiColor: .systemGray5))
+                                .lineLimit(nil)
+
+                            Button("キーボード閉じる") {
+                                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                             }
-//                        Button("閉じる") {
-//                                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-//                                    }
-                            .multilineTextAlignment(TextAlignment.leading)
-                            .background(Color(uiColor: .systemGray5))
-                            .lineLimit(nil)
+                            .background(focasisActive ? Color.blue : Color.gray) // ボタンの背景色をカスタマイズ
+                            .foregroundColor(.white)
+                            .padding(.trailing, 10)
+                            .opacity(focasisActive ? 1 : 0) // フォーカス時のみ表示
+                        }
+
+                        
+//                        TextEditor(text: $taskBody)
+//                            .padding()
+//                            .frame(height:200,alignment: .topLeading)
+//                            .focused($focasisActive)
+//
+////                            .toolbar {
+////                                ToolbarItemGroup(placement: .keyboard) {
+////                                    Spacer()         // 右寄せにする
+////                                    Button("閉じる") {
+////                                        focasisActive = false  //  フォーカスを外す
+////                                    }
+////                                }
+////                            }
+////                        Button("閉じる") {
+////                                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+////                                    }
+//                            .multilineTextAlignment(TextAlignment.leading)
+//                            .background(Color(uiColor: .systemGray5))
+//                            .lineLimit(nil)
+//                            .overlay(
+//                                Button("閉じる") {
+//                                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+//                                }
+//                              //  .padding(.trailing, 10)
+//                                .opacity(focasisActive ? 1 : 0) // フォーカス時のみ表示
+//                                , alignment: .trailing
+//                            )
                     }
                     Toggle(isOn: $timeFlg){
                         Text("時間設定")
@@ -1318,7 +1401,7 @@ struct PopupView: View {
                             //.environment(\.locale, Locale(identifier: "ja_JP"))
                             startTimeString = dateChangeString(date:startTime)
                             endTimeString  = dateChangeString(date:endTime)
-                            starttimestamptest = timestampchange(date:startTime)
+//                            starttimestamptest = timestampchange(date:startTime)
                             starttimeStamp = timestampchange(date: startTime)
                             endTimeStamp = timestampchange(date: endTime)
                             if firebaseid == "" {

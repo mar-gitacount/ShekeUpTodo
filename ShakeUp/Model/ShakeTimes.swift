@@ -191,6 +191,7 @@ class FirebasetododatagetModel: ObservableObject {
 //            .limit(to:datasnumbers)
         //検索文字がからでない場合、渡された文字列で検索してpopupdatasに入れ込む。
         if !serachvalue.isEmpty{
+            print("空でない")
             //謎変数
             var matchingDocuments = [QueryDocumentSnapshot]()
             //タスクリストコレクションの取得。
@@ -290,11 +291,11 @@ class FirebasetododatagetModel: ObservableObject {
 //                    }
 //
 //                }// Firestore.firestore().collection("users").document(uid).collection("tasklist")
-            print("検索関数の終わり")
             return popupdatas
         }
         
         Firestore.firestore().collection("users").document(uid).collection("tasklist").order(by:"startTime" , descending: true).addSnapshotListener{ (snaps, error) in
+            print("空である。")
             if let error = error{
                 return
                 //fatalError("\(error)")
@@ -306,6 +307,7 @@ class FirebasetododatagetModel: ObservableObject {
                 DispatchQueue.main.async {
                     self.popupdatas.removeAll()
                     //            ここの繰り返し処理を非同期処理内に移動する。
+                    print("検索結果が空の場合に入ってる。")
                                 for document in documents{
                                     let documentID = document.documentID
                                     //ドキュメントidを取得したので、その中のデータを抽出する。
@@ -498,7 +500,7 @@ class AuthControlManager: ObservableObject {
                     }
                 })
                 let values = ["name":user.uid,"email":email]
-                //データを登録する。
+                //を登録する。
                 db.collection("users").document(user.uid).setData(values)
             }
         }
